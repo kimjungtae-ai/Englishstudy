@@ -15,7 +15,9 @@
 `index.html`을 브라우저로 열면 됩니다. 빌드 과정이 없는 HTML 파일 하나입니다.
 
 - 예시 단어 6개(transport, export, predict, visible, construct, inspect)는 페이지에 들어 있어 어디서나 보입니다.
-- 그 밖의 단어는 claude.ai Artifact로 열었을 때만 Claude가 즉석에서 만듭니다(`window.claude` 의 `sample` 기능). GitHub Pages나 로컬 파일로 열면 예시 단어만 쓸 수 있습니다.
+- 그 밖의 단어는 Claude가 즉석에서 만듭니다.
+  - claude.ai Artifact로 열면 보는 사람의 Claude 계정으로 만듭니다(`window.claude` 의 `sample` 기능).
+  - GitHub Pages나 로컬 파일로 열면 검색창 아래에 "Claude API 키 넣기" 칸이 나옵니다. [Anthropic Console](https://console.anthropic.com/settings/keys)에서 만든 키를 넣으면 그 키로 만듭니다. 키는 그 브라우저의 localStorage에만 저장되고 Anthropic API로만 보내집니다. 요금이 키 주인에게 청구되므로 학생 기기·공용 컴퓨터에는 넣지 마세요.
 
 ## 알려진 제약
 

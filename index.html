@@ -44,6 +44,11 @@ button{font:inherit;cursor:pointer;border:0;border-radius:10px}
 .note{font-size:.9rem;color:var(--muted)}
 .note.err{color:var(--warn)}
 .status{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.keybox{background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.keybox summary{cursor:pointer;font-family:var(--f-display)}
+.keybox .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.keybox input{flex:1 1 220px;min-width:0;font:.95rem var(--f-mono);padding:10px 12px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}
+.keybox .btn{padding:10px 14px;font-size:.95rem}
 
 .card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:24px 20px;display:flex;flex-direction:column;gap:28px}
 .hero{display:flex;flex-direction:column;gap:12px}
@@ -112,6 +117,16 @@ a{color:var(--accent)}
   </form>
   <div class="chips" id="chips"><span class="lbl">예시 단어</span></div>
   <div class="status"><span class="note" id="msg"></span></div>
+  <details class="keybox" id="keybox" hidden>
+    <summary>새 단어를 만들려면: Claude API 키 넣기</summary>
+    <p class="note">이 페이지는 claude.ai 밖(GitHub Pages, 내 컴퓨터)에서 열려 있어서, 새 단어를 만들려면 Anthropic API 키가 필요해요. 키는 <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">Anthropic Console</a>에서 만들 수 있고, 이 브라우저에만 저장돼서 Anthropic 서버로만 보내져요. 요금은 키 주인 계정에 청구되니, 학생 기기나 공용 컴퓨터에는 넣지 마세요.</p>
+    <div class="row">
+      <input id="key" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false" aria-label="Anthropic API 키">
+      <button class="btn" id="keysave" type="button">저장</button>
+      <button class="btn ghost" id="keydel" type="button">지우기</button>
+    </div>
+    <p class="note" id="keymsg"></p>
+  </details>
 
   <article class="card" id="card" aria-live="polite"></article>
   <p class="note">예시 단어 6개는 미리 만들어 둔 내용이에요. 다른 단어는 Claude가 그 자리에서 만들어서, 처음 한 번은 사용 허락을 물어봐요. 만든 단어는 이 브라우저에 저장돼요.</p>
@@ -363,6 +378,50 @@ function buildPrompt(w){
 }
 
 let samplePromise = (window.claude && window.claude.use) ? window.claude.use("sample") : Promise.resolve(null);
+
+// ---- outside claude.ai: call the Claude API with the viewer's own key ----
+const KEY_LS = "etym-api-key";
+const getKey = () => { try { return localStorage.getItem(KEY_LS) || ""; } catch (e) { return ""; } };
+const keyMsg = () => { $("#keymsg").textContent = getKey() ? "키가 저장돼 있어요. 이제 새 단어를 넣어 보세요." : "아직 키가 없어요."; };
+function apiSample(){
+  return { json: async (prompt, { signal } = {}) => {
+    const key = getKey(); if (!key) throw { code: "no_key" };
+    let r;
+    try {
+      r = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST", signal,
+        headers: {
+          "content-type": "application/json",
+          "x-api-key": key,
+          "anthropic-version": "2023-06-01",
+          "anthropic-beta": "server-side-fallback-2026-07-01",
+          "anthropic-dangerous-direct-browser-access": "true"
+        },
+        body: JSON.stringify({
+          model: "claude-opus-5-5", max_tokens: 16000, fallbacks: "default",
+          output_config: { effort: "low" },
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+    } catch (e) { throw { code: e && e.name === "AbortError" ? "cancelled" : "network" }; }
+    if (r.status === 401 || r.status === 403) throw { code: "bad_key" };
+    if (r.status === 429) throw { code: "rate_limited" };
+    if (!r.ok) throw { code: "api_error" };
+    const res = await r.json();
+    if (res.stop_reason === "refusal") throw { code: "refused" };
+    const text = (res.content || []).filter(b => b.type === "text").map(b => b.text).join("");
+    const a = text.indexOf("{"), b = text.lastIndexOf("}");
+    if (a < 0 || b < a) throw { code: "invalid_json" };
+    try { return JSON.parse(text.slice(a, b + 1)); } catch (e) { throw { code: "invalid_json" }; }
+  }};
+}
+samplePromise = samplePromise.then(s => {
+  if (s) return s;
+  $("#keybox").hidden = false; $("#keybox").open = !getKey(); keyMsg();
+  return apiSample();
+});
+$("#keysave").onclick = () => { const v = $("#key").value.trim(); if (!v) return; try { localStorage.setItem(KEY_LS, v); } catch (e) {} $("#key").value = ""; keyMsg(); };
+$("#keydel").onclick = () => { try { localStorage.removeItem(KEY_LS); } catch (e) {} keyMsg(); };
 let ctl = null;
 const msg = (t, err) => { const m = $("#msg"); m.textContent = t; m.classList.toggle("err", !!err); };
 const ERR = {
@@ -371,7 +430,10 @@ const ERR = {
   rate_limited:"지금 요청이 많아요. 잠시 뒤에 다시 눌러 주세요.",
   session_expired:"로그인이 만료됐어요. 다시 로그인한 뒤 눌러 주세요.",
   invalid_json:"내용을 정리하다 꼬였어요. 한 번 더 눌러 주세요.",
-  refused:"이 단어는 만들 수 없어요. 다른 단어로 해 볼까요?"
+  refused:"이 단어는 만들 수 없어요. 다른 단어로 해 볼까요?",
+  no_key:"새 단어를 만들려면 아래에 Claude API 키를 먼저 넣어 주세요. 예시 단어는 지금도 볼 수 있어요.",
+  bad_key:"API 키가 맞지 않아요. 키를 다시 확인해 주세요.",
+  api_error:"Claude 쪽에서 오류가 났어요. 잠시 뒤에 다시 눌러 주세요."
 };
 
 async function generate(raw){
@@ -379,7 +441,7 @@ async function generate(raw){
   if (!/^[a-z][a-z\-']{1,30}$/.test(w)) { msg("영어 단어 하나를 알파벳으로 넣어 주세요.", true); return; }
   if (find(w)) { show(find(w)); msg(""); return; }
   const sample = await samplePromise;
-  if (!sample) { msg("여기서는 Claude를 부를 수 없어요. claude.ai에서 열면 새 단어도 만들 수 있어요. 지금은 예시 단어를 눌러 보세요.", true); return; }
+  if (!window.claude && !getKey()) { msg(ERR.no_key, true); $("#keybox").open = true; return; }
   ctl = new AbortController();
   $("#go").disabled = true; $("#stop").hidden = false;
   msg(`'${w}' 뿌리를 캐는 중이에요… (보통 20~60초 걸려요)`);
