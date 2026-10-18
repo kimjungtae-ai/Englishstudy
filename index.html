@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>어원 단어 교실</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Gowun+Dodum&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a student's study notebook. One word card, morpheme blocks as the hero, then seven notebook sections in the order the teacher teaches them. */
+:root{
+  --bg:#eef2f6; --paper:#ffffff; --ink:#1d2a44; --muted:#5b6780; --line:#d5dde8;
+  --pre:#ffd95e; --root:#7fdcc0; --suf:#ffb3c7; --accent:#2f5bd3; --accent-ink:#ffffff;
+  --soft:#e3ebf7; --warn:#b4472b;
+  --f-display:"Jua","Gowun Dodum",system-ui,sans-serif;
+  --f-body:"Gowun Dodum","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121826; --paper:#1b2335; --ink:#e7ecf6; --muted:#9aa6bf; --line:#2c3750;
+  --pre:#c9a632; --root:#3fae90; --suf:#c9708a; --accent:#7ea2ff; --accent-ink:#0e1424;
+  --soft:#243049; --warn:#f08a6c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121826; --paper:#1b2335; --ink:#e7ecf6; --muted:#9aa6bf; --line:#2c3750;
+  --pre:#c9a632; --root:#3fae90; --suf:#c9708a; --accent:#7ea2ff; --accent-ink:#0e1424;
+  --soft:#243049; --warn:#f08a6c; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.7;padding-inline:16px;padding-block:20px 48px}
+.wrap{max-width:860px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2,h3{font-family:var(--f-display);font-weight:400;text-wrap:balance;margin:0;line-height:1.25}
+h1{font-size:1.9rem}
+.sub{color:var(--muted);margin:4px 0 0}
+.search{display:flex;gap:8px;flex-wrap:wrap}
+.search input{flex:1 1 220px;min-width:0;font:600 1.1rem var(--f-mono);padding:12px 14px;border:2px solid var(--line);border-radius:10px;background:var(--paper);color:var(--ink)}
+.search input:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px}
+.btn{background:var(--accent);color:var(--accent-ink);padding:12px 18px;font-family:var(--f-display);font-size:1.05rem}
+.btn[disabled]{opacity:.55;cursor:wait}
+.btn.ghost{background:transparent;color:var(--accent);border:2px solid var(--accent)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.chips .lbl{font-size:.85rem;color:var(--muted);margin-right:4px}
+.chip{background:var(--paper);color:var(--ink);border:1.5px solid var(--line);padding:4px 12px;font:600 .9rem var(--f-mono);border-radius:999px}
+.chip[aria-pressed="true"]{border-color:var(--accent);color:var(--accent)}
+.note{font-size:.9rem;color:var(--muted)}
+.note.err{color:var(--warn)}
+.status{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+
+.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:24px 20px;display:flex;flex-direction:column;gap:28px}
+.hero{display:flex;flex-direction:column;gap:12px}
+.hero .meta{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.hero .w{font:600 2.4rem/1.1 var(--f-mono);letter-spacing:.01em;word-break:break-word}
+.hero .pos{font-size:.9rem;color:var(--muted)}
+.hero .mean{font-family:var(--f-display);font-size:1.3rem}
+.blocks{display:flex;flex-wrap:wrap;gap:6px;align-items:stretch}
+.blk{border-radius:10px;padding:8px 14px 10px;display:flex;flex-direction:column;align-items:center;min-width:84px;color:#1d2a44}
+.blk.prefix{background:var(--pre)} .blk.root{background:var(--root)} .blk.suffix{background:var(--suf)}
+.blk b{font:600 1.5rem var(--f-mono)}
+.blk .k{font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;font-family:var(--f-mono);opacity:.8}
+.blk .m{font-size:.92rem;text-align:center}
+.blk .o{font-size:.75rem;opacity:.8;text-align:center}
+.plus{align-self:center;font:600 1.3rem var(--f-mono);color:var(--muted)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:.8rem;color:var(--muted)}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:3px;vertical-align:-1px;margin-right:4px}
+
+section.sec{display:flex;flex-direction:column;gap:12px;border-top:1px dashed var(--line);padding-top:20px}
+.sec h2{font-size:1.35rem;display:flex;gap:10px;align-items:center}
+.sec h2 .n{font:600 .8rem var(--f-mono);background:var(--soft);color:var(--accent);border-radius:6px;padding:2px 8px}
+.talk{display:flex;gap:12px;align-items:flex-start}
+.talk .face{flex:0 0 42px;height:42px;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-family:var(--f-display);color:var(--accent)}
+.talk p{margin:0;background:var(--soft);border-radius:4px 14px 14px 14px;padding:10px 14px;max-width:62ch;min-width:0}
+.derivs{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.d{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.d .dw{font:600 1.1rem var(--f-mono)} .d .dm{color:var(--muted);font-size:.9rem}
+.d .ex{margin:4px 0 0;font-family:var(--f-mono);font-size:.9rem;line-height:1.5}
+.d .exk{margin:0;font-size:.85rem;color:var(--muted)}
+.d mark{background:var(--root);color:#1d2a44;border-radius:3px;padding:0 2px}
+.pic{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+.pic .frame{flex:0 1 300px;max-width:100%;aspect-ratio:3/2;background:var(--soft);border-radius:14px;display:grid;place-items:center;overflow:hidden}
+.pic .frame svg,.pic .frame img{width:100%;height:100%}
+.pic .side{flex:1 1 220px;min-width:0;display:flex;flex-direction:column;gap:6px}
+.s-ink{fill:var(--ink)} .s-a{fill:var(--pre)} .s-b{fill:var(--accent)} .s-c{fill:var(--suf)} .s-r{fill:var(--root)} .s-bg{fill:var(--paper)} .s-soft{fill:var(--line)}
+.st-ink{stroke:var(--ink)}
+.vids{display:flex;flex-direction:column;gap:8px}
+.vid{display:flex;justify-content:space-between;gap:10px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:10px 14px;color:var(--ink);text-decoration:none;flex-wrap:wrap}
+.vid:hover{border-color:var(--accent)}
+.vid .q{font:600 1rem var(--f-mono);min-width:0;word-break:break-word}
+.vid .go{color:var(--accent);font-size:.9rem;white-space:nowrap}
+.story{background:var(--soft);border-radius:14px;padding:18px 20px;display:flex;flex-direction:column;gap:8px}
+.story h3{font-size:1.25rem}
+.story p{margin:0;font-size:1.05rem;line-height:1.9;max-width:62ch}
+.story .en{font-family:var(--f-mono);font-weight:600;background:var(--pre);color:#1d2a44;border-radius:4px;padding:0 4px}
+.story .ko{color:var(--muted)}
+.count{font:.8rem var(--f-mono);color:var(--muted)}
+.tag{font:.75rem var(--f-mono);color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:1px 6px}
+a{color:var(--accent)}
+@media (max-width:480px){.hero .w{font-size:1.9rem}.blk{min-width:70px;padding:6px 10px}}
+@media (prefers-reduced-motion:no-preference){.card{animation:rise .35s ease-out both}@keyframes rise{from{transform:translateY(6px)}to{transform:none}}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>어원 단어 교실</h1>
+    <p class="sub">영어 단어를 넣으면 조각조각 나눠서, 뿌리부터 이야기처럼 알려 줄게요.</p>
+  </header>
+
+  <form class="search" id="f" autocomplete="off">
+    <input id="q" type="text" placeholder="예: transport, inspect, describe" aria-label="영어 단어" spellcheck="false">
+    <button class="btn" id="go" type="submit">알아보기</button>
+    <button class="btn ghost" id="stop" type="button" hidden>그만</button>
+  </form>
+  <div class="chips" id="chips"><span class="lbl">예시 단어</span></div>
+  <div class="status"><span class="note" id="msg"></span></div>
+
+  <article class="card" id="card" aria-live="polite"></article>
+  <p class="note">예시 단어 6개는 미리 만들어 둔 내용이에요. 다른 단어는 Claude가 그 자리에서 만들어서, 처음 한 번은 사용 허락을 물어봐요. 만든 단어는 이 브라우저에 저장돼요.</p>
+</div>
+
+<script>
+const SVG = {
+transport:`<svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="상자를 싣고 달리는 트럭"><rect class="s-soft" x="0" y="128" width="240" height="32"/><rect class="s-bg" x="20" y="141" width="30" height="4" rx="2"/><rect class="s-bg" x="80" y="141" width="30" height="4" rx="2"/><rect class="s-bg" x="140" y="141" width="30" height="4" rx="2"/><rect class="s-bg" x="200" y="141" width="30" height="4" rx="2"/><rect class="s-c" x="44" y="46" width="30" height="26" rx="3"/><rect class="s-a" x="78" y="54" width="26" height="18" rx="3"/><rect class="s-r" x="108" y="40" width="24" height="32" rx="3"/><rect class="s-b" x="36" y="72" width="104" height="44" rx="6"/><rect class="s-b" x="142" y="84" width="46" height="32" rx="6"/><rect class="s-bg" x="156" y="90" width="22" height="13" rx="2"/><circle class="s-ink" cx="66" cy="120" r="13"/><circle class="s-bg" cx="66" cy="120" r="5"/><circle class="s-ink" cx="166" cy="120" r="13"/><circle class="s-bg" cx="166" cy="120" r="5"/><path class="st-ink" d="M196 60h32M218 50l10 10-10 10" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+export:`<svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="컨테이너를 싣고 나라 밖으로 떠나는 배"><rect class="s-b" x="0" y="118" width="240" height="42"/><path d="M10 134q10-6 20 0t20 0M90 146q10-6 20 0t20 0M170 136q10-6 20 0t20 0" fill="none" style="stroke:var(--paper)" stroke-width="3" stroke-linecap="round"/><rect class="s-c" x="58" y="80" width="30" height="20" rx="2"/><rect class="s-a" x="90" y="80" width="30" height="20" rx="2"/><rect class="s-r" x="122" y="80" width="30" height="20" rx="2"/><rect class="s-a" x="74" y="58" width="30" height="20" rx="2"/><rect class="s-c" x="106" y="58" width="30" height="20" rx="2"/><rect class="s-ink" x="156" y="64" width="16" height="36" rx="2"/><rect class="s-bg" x="160" y="70" width="8" height="6"/><path class="s-ink" d="M36 100h150l-18 26H54z"/><circle class="s-bg" cx="70" cy="112" r="3"/><circle class="s-bg" cx="90" cy="112" r="3"/><path class="st-ink" d="M196 46h32M218 36l10 10-10 10" fill="none" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+predict:`<svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="날씨가 보이는 수정 구슬"><circle class="s-soft" cx="120" cy="72" r="52"/><circle class="s-bg" cx="120" cy="72" r="46"/><circle class="s-a" cx="104" cy="62" r="15"/><ellipse class="s-soft" cx="130" cy="84" rx="26" ry="12"/><ellipse class="s-soft" cx="142" cy="76" rx="14" ry="11"/><path class="s-b" d="M126 98l-4 10M138 98l-4 10M150 96l-4 10" stroke="currentColor" style="stroke:var(--accent)" stroke-width="3" stroke-linecap="round"/><path class="s-c" d="M78 140h84l-12-22H90z"/><rect class="s-ink" x="72" y="138" width="96" height="8" rx="4"/><path class="s-a" d="M188 30l4 10 10 4-10 4-4 10-4-10-10-4 10-4z"/><path class="s-r" d="M50 40l3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/></svg>`,
+visible:`<svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="크게 뜬 눈"><path class="s-bg st-ink" d="M24 80Q120 4 216 80Q120 156 24 80Z" stroke-width="5"/><circle class="s-b" cx="120" cy="80" r="32"/><circle class="s-ink" cx="120" cy="80" r="14"/><circle class="s-bg" cx="129" cy="71" r="6"/><path class="st-ink" d="M120 14v-10M70 26l-6-9M170 26l6-9M36 48l-9-6M204 48l9-6" stroke-width="4" stroke-linecap="round" fill="none"/></svg>`,
+construct:`<svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="블록을 쌓는 크레인"><rect class="s-soft" x="0" y="140" width="240" height="20"/><rect class="s-ink" x="40" y="24" width="10" height="116"/><rect class="s-a" x="40" y="22" width="160" height="10"/><rect class="s-ink" x="28" y="22" width="14" height="22"/><path class="st-ink" d="M176 32v34" stroke-width="2"/><rect class="s-c" x="160" y="66" width="34" height="22" rx="3"/><rect class="s-b" x="96" y="118" width="44" height="22" rx="3"/><rect class="s-r" x="142" y="118" width="44" height="22" rx="3"/><rect class="s-a" x="118" y="94" width="44" height="22" rx="3"/><path class="st-ink" d="M40 40l10 14M40 70l10 14M40 100l10 14" stroke-width="2"/></svg>`,
+inspect:`<svg viewBox="0 0 240 160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="발자국을 살피는 돋보기"><ellipse class="s-c" cx="58" cy="128" rx="10" ry="15"/><ellipse class="s-c" cx="84" cy="112" rx="10" ry="15"/><circle class="s-bg" cx="108" cy="70" r="44"/><ellipse class="s-c" cx="98" cy="84" rx="12" ry="18"/><ellipse class="s-c" cx="122" cy="58" rx="12" ry="18"/><circle cx="108" cy="70" r="44" fill="none" class="st-ink" stroke-width="9"/><path class="st-ink" d="M140 102l50 46" stroke-width="16" stroke-linecap="round"/><path d="M84 50a30 30 0 0 1 22-14" fill="none" style="stroke:var(--root)" stroke-width="5" stroke-linecap="round"/></svg>`
+};
+
+const PRESET = [
+{word:"transport",pos:"동사·명사",meaning:"실어 나르다, 운송(하다), 교통",
+ parts:[{text:"trans",type:"prefix",origin:"라틴어 trans",meaning:"건너서, 저쪽으로"},{text:"port",type:"root",origin:"라틴어 portare",meaning:"나르다"}],
+ rootTalk:"trans는 '건너편으로', port는 '나르다'라는 뜻이에요. 둘을 붙이면 '저쪽으로 실어 나르다'! 트럭이 짐을 싣고 강 건너 도시로 가는 모습을 떠올리면 딱이에요. port가 보이면 일단 '나른다'를 떠올려 보세요.",
+ history:"로마 사람들은 길을 아주 잘 닦았어요. 그 길로 곡식과 물건을 제국 곳곳에 portare(나르다) 했죠. 호텔에서 가방을 들어 주는 사람을 porter라고 부르는 것도 '나르는 사람'이라서예요. 2천 년 전 로마의 말이 오늘날 버스·지하철을 뜻하는 transport가 된 거예요.",
+ derivatives:[
+  {word:"transportation",meaning:"교통, 운송",example:"Buses are cheap public transportation in Seoul.",exampleKo:"버스는 서울에서 값싼 대중교통이에요."},
+  {word:"import",meaning:"수입하다 (안으로 나르다)",example:"Korea imports a lot of bananas.",exampleKo:"한국은 바나나를 많이 수입해요."},
+  {word:"export",meaning:"수출하다 (밖으로 나르다)",example:"Korea exports cars to many countries.",exampleKo:"한국은 여러 나라에 자동차를 수출해요."},
+  {word:"report",meaning:"보고(하다) (소식을 다시 날라 오다)",example:"I wrote a report about my weekend.",exampleKo:"나는 주말에 대한 보고서를 썼어요."},
+  {word:"support",meaning:"지지하다, 받치다 (아래에서 나르다)",example:"My parents always support me.",exampleKo:"부모님은 항상 나를 응원해 주세요."},
+  {word:"portable",meaning:"들고 다닐 수 있는",example:"This portable speaker is small and light.",exampleKo:"이 휴대용 스피커는 작고 가벼워요."},
+  {word:"porter",meaning:"짐꾼, 짐 들어 주는 사람",example:"The porter carried our bags to the room.",exampleKo:"짐꾼이 우리 가방을 방까지 옮겨 줬어요."}],
+ phrases:["transport","public transport","transport it"],
+ story:{title:"이삿날의 수상한 피아노",text:"민수는 이삿날 피아노를 혼자 transport(옮기다)하겠다고 큰소리쳤어요. \"이건 portable(들고 다닐 수 있는) 피아노야!\" 친구들이 옆에서 support(받치다)했지만 피아노는 꿈쩍도 안 했죠. 결국 porter(짐꾼) 아저씨를 불렀는데, 아저씨가 한 손으로 번쩍! 모두 깜짝 놀라 엄마에게 report(보고하다)하려는 순간, 아저씨가 웃었어요. \"이거 장난감 피아노잖아.\""}},
+{word:"export",pos:"동사·명사",meaning:"수출하다, 수출(품), (파일을) 내보내다",
+ parts:[{text:"ex",type:"prefix",origin:"라틴어 ex",meaning:"밖으로"},{text:"port",type:"root",origin:"라틴어 portare",meaning:"나르다"}],
+ rootTalk:"ex는 '밖으로', port는 '나르다'예요. 나라 밖으로 실어 나르니까 '수출하다'! 반대로 im(안으로)을 붙이면 import, '수입하다'가 돼요. 컴퓨터에서 파일을 '내보내기' 할 때도 export라고 하니까 같이 기억해 두세요.",
+ history:"로마 시대에도 사람들은 올리브기름과 포도주를 항아리에 담아 배에 싣고 지중해 곳곳으로 export 했어요. 오늘날 한국은 반도체와 자동차는 물론 라면과 K-팝 앨범까지 세계로 export 하는 나라예요. 물건이 '밖으로 나가는' 길은 2천 년 전이나 지금이나 바다랍니다.",
+ derivatives:[
+  {word:"exporter",meaning:"수출국, 수출하는 회사",example:"Korea is a big exporter of phones.",exampleKo:"한국은 휴대폰을 많이 수출하는 나라예요."},
+  {word:"import",meaning:"수입하다 (안으로 나르다)",example:"We import coffee from Brazil.",exampleKo:"우리는 브라질에서 커피를 수입해요."},
+  {word:"transport",meaning:"실어 나르다 (건너편으로 나르다)",example:"Ships transport cars to other countries.",exampleKo:"배가 다른 나라로 자동차를 실어 날라요."},
+  {word:"report",meaning:"보고(하다), 보도 (소식을 다시 날라 오다)",example:"The news report was about Korean ramen.",exampleKo:"그 뉴스 보도는 한국 라면에 대한 거였어요."},
+  {word:"support",meaning:"응원하다, 받치다 (아래에서 나르다)",example:"Many fans support Korean singers.",exampleKo:"많은 팬이 한국 가수를 응원해요."},
+  {word:"portable",meaning:"들고 다닐 수 있는",example:"I take my portable charger everywhere.",exampleKo:"나는 보조배터리를 어디든 가지고 다녀요."},
+  {word:"porter",meaning:"짐꾼, 짐 들어 주는 사람",example:"The porter helped the old man with his bags.",exampleKo:"짐꾼이 할아버지의 가방을 들어 드렸어요."}],
+ phrases:["export","import and export","exports"],
+ story:{title:"울면서 먹는 라면",text:"라면 회사 사장님이 아주 매운 라면을 미국에 export(수출하다)했어요. 배가 라면을 transport(실어 나르다)하는 동안 사장님은 들떠 있었죠. 그런데 미국에서 온 report(보고서)에 이렇게 쓰여 있었어요. \"너무 매워서 다들 울어요!\" 사장님이 망했다며 머리를 감싸는 순간, 다음 줄이 보였어요. \"그래서 열 배 더 보내 주세요. 울면서 먹는 게 유행이래요!\" 미국 팬들의 support(응원) 덕분에 라면은 하루 만에 매진됐답니다."}},
+{word:"predict",pos:"동사",meaning:"예측하다, 미리 말하다",
+ parts:[{text:"pre",type:"prefix",origin:"라틴어 prae",meaning:"미리, 앞에"},{text:"dict",type:"root",origin:"라틴어 dicere",meaning:"말하다"}],
+ rootTalk:"pre는 '미리', dict는 '말하다'예요. 일이 일어나기 전에 미리 말하니까 '예측하다'가 되는 거죠. 단어 속에 dict가 숨어 있으면 '말'과 관련이 있을 확률이 높아요!",
+ history:"고대 로마에서 dicere는 '말하다'라는 아주 흔한 말이었어요. 나라가 위기일 때 혼자 명령을 '말하는' 사람을 dictator(독재관)라고 불렀죠. 옛날 사람들은 하늘이나 별을 보고 미래를 predict 했고, 오늘날에는 일기 예보관이 컴퓨터로 날씨를 predict 해요.",
+ derivatives:[
+  {word:"prediction",meaning:"예측",example:"My prediction was right. It rained today!",exampleKo:"내 예측이 맞았어요. 오늘 비가 왔어요!"},
+  {word:"predictable",meaning:"뻔한, 예측할 수 있는",example:"The movie was predictable. I knew the ending.",exampleKo:"그 영화는 뻔했어요. 결말을 알았거든요."},
+  {word:"dictionary",meaning:"사전 (말을 모아 둔 책)",example:"I looked up the word in my dictionary.",exampleKo:"나는 사전에서 그 단어를 찾아봤어요."},
+  {word:"dictation",meaning:"받아쓰기",example:"We have a dictation test every Friday.",exampleKo:"우리는 금요일마다 받아쓰기 시험을 봐요."},
+  {word:"contradict",meaning:"반박하다 (반대로 말하다)",example:"My brother always contradicts me.",exampleKo:"형은 항상 내 말에 반대해요."},
+  {word:"dictator",meaning:"독재자",example:"The dictator told everyone what to do.",exampleKo:"독재자는 모두에게 무엇을 할지 명령했어요."},
+  {word:"verdict",meaning:"판결 (진실을 말함)",example:"The judge gave the verdict: not guilty.",exampleKo:"판사가 판결을 내렸어요. 무죄!"}],
+ phrases:["predict","I predict","can't predict"],
+ story:{title:"점쟁이 고양이 나비",text:"고양이 나비는 매일 아침 날씨를 predict(예측하다)했어요. \"오늘의 prediction(예측)은 맑음이다냥!\" 그런데 비가 쏟아졌죠. 친구 강아지가 dictionary(사전)까지 펴 들고 \"틀렸잖아!\" 하며 contradict(반박하다)했어요. 나비는 당당하게 말했어요. \"난 내일 날씨를 말한 거다냥.\" 다음 날은 정말 맑았어요. 너무 predictable(뻔한) 변명이었지만요!"}},
+{word:"visible",pos:"형용사",meaning:"눈에 보이는",
+ parts:[{text:"vis",type:"root",origin:"라틴어 videre (visus)",meaning:"보다"},{text:"ible",type:"suffix",origin:"라틴어 -ibilis",meaning:"~할 수 있는"}],
+ rootTalk:"vis는 '보다', -ible은 '~할 수 있는'이에요. 그래서 visible은 '볼 수 있는', 즉 '눈에 보이는'이 돼요. 앞에 in(아닌)을 붙이면 invisible, '안 보이는'! 투명 인간이 바로 invisible man이에요.",
+ history:"라틴어 videre는 '보다'라는 뜻이에요. 재미있는 건 video라는 말이 라틴어로 '나는 본다'라는 뜻 그대로라는 거예요. 2천 년 전 로마 사람의 말이 지금 우리가 매일 보는 유튜브 영상 이름이 된 셈이죠. television도 '멀리(tele) 보는 것(vision)'이랍니다.",
+ derivatives:[
+  {word:"invisible",meaning:"보이지 않는",example:"The man in the movie became invisible.",exampleKo:"영화 속 남자는 투명 인간이 됐어요."},
+  {word:"vision",meaning:"시력, 꿈과 계획",example:"My grandpa has good vision. He doesn't need glasses.",exampleKo:"할아버지는 시력이 좋아서 안경이 필요 없어요."},
+  {word:"visit",meaning:"방문하다 (보러 가다)",example:"I visit my grandma every Sunday.",exampleKo:"나는 일요일마다 할머니 댁에 가요."},
+  {word:"video",meaning:"영상",example:"We watched a funny video on my phone.",exampleKo:"우리는 내 폰으로 웃긴 영상을 봤어요."},
+  {word:"television",meaning:"텔레비전",example:"My dad watches television after dinner.",exampleKo:"아빠는 저녁 식사 후에 텔레비전을 보세요."},
+  {word:"visual",meaning:"눈으로 보는, 시각의",example:"Pictures are good visual help for learning.",exampleKo:"그림은 공부할 때 좋은 시각 자료예요."},
+  {word:"revise",meaning:"고치다 (다시 보다)",example:"Please revise your essay before Friday.",exampleKo:"금요일 전에 글을 고쳐 오세요."},
+  {word:"evidence",meaning:"증거 (밖으로 보이는 것)",example:"The police found evidence in the kitchen.",exampleKo:"경찰이 부엌에서 증거를 찾았어요."}],
+ phrases:["visible","not visible","invisible"],
+ story:{title:"투명 망토의 비밀",text:"지호는 인터넷에서 invisible(투명한) 망토를 샀어요. \"이제 난 하나도 visible(보이는)하지 않아!\" 지호는 살금살금 형 방에 visit(방문하다)했어요. 그런데 형이 소리쳤죠. \"지호야, 내 과자 먹지 마!\" 알고 보니 망토는 정말 투명했어요. 그래서 그 안의 지호가 다 보였던 거예요. 형은 그 장면을 video(영상)로 찍어 evidence(증거)로 남겼답니다."}},
+{word:"construct",pos:"동사",meaning:"건설하다, 짓다, 세우다",
+ parts:[{text:"con",type:"prefix",origin:"라틴어 com",meaning:"함께"},{text:"struct",type:"root",origin:"라틴어 struere",meaning:"쌓다"}],
+ rootTalk:"con은 '함께', struct는 '쌓다'예요. 벽돌을 함께 차곡차곡 쌓으면? 건물이 생기죠! 그래서 construct는 '짓다, 건설하다'예요. 반대로 de(아래로, 거꾸로)가 붙으면 destroy, '무너뜨리다'가 돼요.",
+ history:"로마 사람들은 돌을 쌓아 도로, 다리, 물을 나르는 수로, 콜로세움까지 construct 했어요. 그중 몇몇은 2천 년이 지난 지금도 서 있어요. 그래서 '쌓다'를 뜻하는 struere에서 건물, 구조, 설명서 같은 단어가 줄줄이 나왔답니다.",
+ derivatives:[
+  {word:"construction",meaning:"건설, 공사",example:"There is a lot of construction near my school.",exampleKo:"우리 학교 근처에 공사가 많아요."},
+  {word:"structure",meaning:"구조, 구조물",example:"The Eiffel Tower is a tall metal structure.",exampleKo:"에펠탑은 높은 금속 구조물이에요."},
+  {word:"destroy",meaning:"파괴하다, 부수다",example:"The storm destroyed many trees.",exampleKo:"폭풍이 나무를 많이 쓰러뜨렸어요."},
+  {word:"destruction",meaning:"파괴",example:"The movie showed the destruction of the city.",exampleKo:"그 영화는 도시가 부서지는 장면을 보여 줬어요."},
+  {word:"instruct",meaning:"가르치다, 지시하다 (머릿속에 쌓아 주다)",example:"The coach instructed us to run faster.",exampleKo:"코치님이 우리에게 더 빨리 달리라고 하셨어요."},
+  {word:"instructions",meaning:"설명서, 지시",example:"Read the instructions before you start.",exampleKo:"시작하기 전에 설명서를 읽어요."},
+  {word:"instrument",meaning:"악기, 도구",example:"I play a musical instrument. It's the piano.",exampleKo:"나는 악기를 연주해요. 피아노예요."}],
+ phrases:["construct","build","construction"],
+ story:{title:"레고 성의 진짜 주인",text:"동생이 레고로 커다란 성을 construct(짓다)했어요. instructions(설명서)도 안 보고요! 그 structure(구조물)는 정말 튼튼해 보였죠. 그때 강아지 콩이가 달려와 꼬리로 쾅! 성을 destroy(부수다)해 버렸어요. 동생이 울 줄 알았는데 씩 웃었어요. \"괜찮아. 원래 콩이 집으로 지은 거야.\" 콩이는 무너진 성 한가운데에 누워 코를 골았답니다."}},
+{word:"inspect",pos:"동사",meaning:"점검하다, 꼼꼼히 살펴보다",
+ parts:[{text:"in",type:"prefix",origin:"라틴어 in",meaning:"안을"},{text:"spect",type:"root",origin:"라틴어 specere",meaning:"보다"}],
+ rootTalk:"in은 '안을', spect는 '보다'예요. 안쪽까지 들여다보니까 '꼼꼼히 살피다, 점검하다'! 돋보기를 든 탐정을 떠올려 보세요. spect가 보이면 '본다'와 관련 있는 단어예요.",
+ history:"로마에는 새가 나는 모습을 '보고' 앞일을 점치는 사람이 있었어요. 그만큼 '보다'는 중요한 말이었죠. 지금도 경찰이나 위생 점검을 하는 사람을 inspector라고 불러요. 셜록 홈스 같은 탐정 소설에도 inspector(경감)가 자주 나와요.",
+ derivatives:[
+  {word:"inspector",meaning:"검사관, 경감",example:"The inspector checked the restaurant kitchen.",exampleKo:"검사관이 식당 부엌을 점검했어요."},
+  {word:"inspection",meaning:"점검, 검사",example:"The car needs an inspection every two years.",exampleKo:"자동차는 2년마다 점검을 받아야 해요."},
+  {word:"respect",meaning:"존경하다 (다시 돌아보다)",example:"I respect my teacher.",exampleKo:"나는 우리 선생님을 존경해요."},
+  {word:"expect",meaning:"기대하다, 예상하다 (밖을 내다보다)",example:"I expect a letter from my friend.",exampleKo:"나는 친구의 편지를 기다리고 있어요."},
+  {word:"spectator",meaning:"관중, 구경꾼",example:"Many spectators watched the soccer game.",exampleKo:"많은 관중이 축구 경기를 봤어요."},
+  {word:"suspect",meaning:"용의자, 의심하다 (아래에서 올려다보다)",example:"The police caught the suspect.",exampleKo:"경찰이 용의자를 잡았어요."},
+  {word:"spectacular",meaning:"멋진, 장관인",example:"The fireworks were spectacular!",exampleKo:"불꽃놀이가 정말 멋졌어요!"}],
+ phrases:["inspect","inspector","inspection"],
+ story:{title:"사라진 케이크 사건",text:"inspector(경감) 강 탐정이 사라진 케이크 사건을 inspect(조사하다)했어요. 돋보기로 부엌을 살피던 탐정은 수염에 크림이 묻은 고양이를 suspect(용의자)로 지목했죠. 가족들은 박수를 치며 spectator(구경꾼)가 되었어요. 그런데 반전! 거울을 본 탐정의 콧수염에도 크림이 잔뜩. \"음… 범인은 나였군.\" 아무도 expect(예상하다)하지 못한 결말이었답니다."}}
+];
+
+const LS_KEY = "etym-words-v1";
+let saved = {};
+try { saved = JSON.parse(localStorage.getItem(LS_KEY) || "{}") || {}; } catch (e) { saved = {}; }
+function persist(){ try { localStorage.setItem(LS_KEY, JSON.stringify(saved)); } catch (e) {} }
+
+const $ = s => document.querySelector(s);
+const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+const TYPE_KO = {prefix:"접두사", root:"어근", suffix:"접미사"};
+
+function allWords(){ return [...PRESET.map(w => w.word), ...Object.keys(saved).filter(k => !PRESET.some(p => p.word === k))]; }
+function find(w){ return PRESET.find(p => p.word === w) || saved[w]; }
+
+function renderChips(active){
+  const c = $("#chips"); c.querySelectorAll(".chip").forEach(n => n.remove());
+  allWords().forEach(w => {
+    const b = el("button", "chip", w); b.type = "button";
+    b.setAttribute("aria-pressed", String(w === active));
+    b.onclick = () => show(find(w));
+    c.append(b);
+  });
+}
+
+function markWord(sentence, word){
+  // highlight the derivative (and simple inflections) inside its example
+  const frag = document.createDocumentFragment();
+  const stem = word.toLowerCase().replace(/e$/, "");
+  const re = new RegExp("\\b(" + stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "[a-z]*)", "i");
+  const m = sentence.match(re);
+  if (!m) { frag.append(sentence); return frag; }
+  frag.append(sentence.slice(0, m.index), el("mark", null, m[1]), sentence.slice(m.index + m[1].length));
+  return frag;
+}
+
+function storyNodes(text){
+  // English(한글) → highlighted pair
+  const p = el("p"); const re = /([A-Za-z][A-Za-z'\-]*(?: [A-Za-z][A-Za-z'\-]*)?)\(([^)]{1,30})\)/g;
+  let last = 0, m;
+  while ((m = re.exec(text))) {
+    p.append(text.slice(last, m.index), el("span", "en", m[1]), el("span", "ko", "(" + m[2] + ")"));
+    last = re.lastIndex;
+  }
+  p.append(text.slice(last)); return p;
+}
+
+function section(n, title){
+  const s = el("section", "sec"); const h = el("h2"); h.append(el("span", "n", n), title); s.append(h); return s;
+}
+function talk(text){ const t = el("div", "talk"); t.append(el("div", "face", "쌤"), el("p", null, text)); return t; }
+
+function pictureNode(d){
+  const frame = el("div", "frame");
+  if (SVG[d.word]) frame.innerHTML = SVG[d.word];                       // our own static drawings
+  else if (typeof d.imageSvg === "string" && /^\s*<svg[\s>]/i.test(d.imageSvg) && d.imageSvg.length < 12000) {
+    const img = new Image(); img.alt = d.word + "을(를) 나타낸 그림";
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(d.imageSvg); // rendered as an image, so no scripts run
+    frame.append(img);
+  } else frame.append(el("span", "note", "그림을 만들지 못했어요"));
+  return frame;
+}
+
+function show(d){
+  if (!d) return;
+  renderChips(d.word);
+  const card = $("#card"); card.replaceChildren();
+
+  // hero: the word broken into blocks
+  const hero = el("div", "hero");
+  const meta = el("div", "meta"); meta.append(el("span", "w", d.word), el("span", "pos", d.pos || ""));
+  if (d.generated) meta.append(el("span", "tag", "Claude가 만든 내용"));
+  hero.append(meta, el("div", "mean", d.meaning || ""));
+  const blocks = el("div", "blocks");
+  (d.parts || []).forEach((p, i) => {
+    if (i) blocks.append(el("span", "plus", "+"));
+    const b = el("div", "blk " + (TYPE_KO[p.type] ? p.type : "root"));
+    b.append(el("span", "k", TYPE_KO[p.type] || "어근"), el("b", null, p.text), el("span", "m", p.meaning || ""), el("span", "o", p.origin || ""));
+    blocks.append(b);
+  });
+  const lg = el("div", "legend");
+  [["접두사","--pre"],["어근","--root"],["접미사","--suf"]].forEach(([t, v]) => { const s = el("span"); const i = el("i"); i.style.background = `var(${v})`; s.append(i, t); lg.append(s); });
+  hero.append(blocks, lg);
+  card.append(hero);
+
+  // 1 root analysis
+  const s1 = section("1", "어근 분석"); s1.append(talk(d.rootTalk || "")); card.append(s1);
+  // 2 history
+  const s2 = section("2", "문화·역사 이야기"); s2.append(talk(d.history || "")); card.append(s2);
+  // 3+4 derivatives with A2 examples
+  const s3 = section("3·4", "같은 뿌리 단어와 예문");
+  s3.append(el("p", "note", "A2 수준 예문이에요. 초록색은 오늘의 단어예요."));
+  const g = el("div", "derivs");
+  (d.derivatives || []).slice(0, 10).forEach(x => {
+    const c = el("div", "d"); c.append(el("span", "dw", x.word), el("span", "dm", x.meaning || ""));
+    const ex = el("p", "ex"); ex.append(markWord(x.example || "", x.word)); c.append(ex, el("p", "exk", x.exampleKo || ""));
+    g.append(c);
+  });
+  s3.append(g); card.append(s3);
+  // 5 picture
+  const s5 = section("5", "그림으로 기억하기");
+  const pic = el("div", "pic"); const side = el("div", "side");
+  side.append(el("p", "note", `'${d.word}'을(를) 한 장면으로 그렸어요. 그림을 보면서 뜻을 소리 내어 말해 보세요.`));
+  const more = el("a", null, "실제 사진 더 보기 (Wikimedia Commons)"); more.href = "https://commons.wikimedia.org/w/index.php?search=" + encodeURIComponent(d.word) + "&title=Special:MediaSearch&type=image"; more.target = "_blank"; more.rel = "noopener";
+  side.append(more); pic.append(pictureNode(d), side); s5.append(pic); card.append(s5);
+  // 6 playphrase
+  const s6 = section("6", "영화 속에서 듣기");
+  s6.append(el("p", "note", "playphrase.me에서 짧고 쉬운 표현으로 찾아요. 누르면 새 탭에서 영화 장면이 재생돼요."));
+  const v = el("div", "vids");
+  const qs = [...new Set([d.word, ...(d.phrases || [])].map(s => String(s).trim()).filter(Boolean))].slice(0, 4);
+  qs.forEach(q => {
+    const a = el("a", "vid"); a.href = "https://www.playphrase.me/#/search?q=" + encodeURIComponent(q); a.target = "_blank"; a.rel = "noopener";
+    a.append(el("span", "q", "“" + q + "”"), el("span", "go", "장면 보기 ↗")); v.append(a);
+  });
+  s6.append(v); card.append(s6);
+  // 7 story
+  const s7 = section("7", "웃긴 이야기로 외우기");
+  const st = el("div", "story"); const txt = (d.story && d.story.text) || "";
+  st.append(el("h3", null, (d.story && d.story.title) || "오늘의 이야기"), storyNodes(txt), el("span", "count", `${[...txt].length}/300자`));
+  s7.append(st); card.append(s7);
+  try { history.replaceState(null, "", "#" + d.word.replace(/[^a-z\-]/g, "")); } catch (e) {}
+}
+
+// ---- live generation for any word ----
+function buildPrompt(w){
+  return `너는 영어 어원 전문가이자 친절한 ESL 선생님이야. 한국 중학교 1학년이 이해하도록, 선생님이 옆에서 말해 주는 재미있는 말투(~해요체)로 써.
+학습자가 입력한 단어: "${w}"
+
+아래 JSON 객체 하나만 답해. 다른 글은 쓰지 마.
+{
+ "word": "단어의 기본형, 소문자",
+ "pos": "품사(한국어, 예: 동사·명사)",
+ "meaning": "한국어 뜻, 짧게",
+ "parts": [{"text":"trans","type":"prefix","origin":"라틴어 trans","meaning":"건너서"}],
+ "rootTalk": "어근 분석 설명 2~3문장. 접두사·어근·접미사(또는 동사 원형)가 각각 무슨 뜻이고 합치면 왜 이 뜻이 되는지.",
+ "history": "문화적·역사적 배경 2~3문장. 확실한 사실만.",
+ "derivatives": [{"word":"import","meaning":"수입하다 (안으로 나르다)","example":"Korea imports a lot of bananas.","exampleKo":"한국은 바나나를 많이 수입해요."}],
+ "phrases": ["public transport", "..."],
+ "imageSvg": "<svg ...>...</svg>",
+ "story": {"title":"이야기 제목", "text":"이야기 본문"}
+}
+규칙:
+- parts: 단어를 앞에서부터 순서대로 나눈 조각. type은 prefix, root, suffix 중 하나. 조각을 이어 붙이면 단어 철자와 거의 같아야 해. 어원이 라틴어·그리스어가 아니면 원래 언어(고대 영어 등)를 origin에 써.
+- derivatives: 같은 주요 어근에서 나온, 자주 쓰는 단어 5~10개. 어원이 확실한 단어만. example은 A2(CEFR) 수준, 12단어 이하의 쉬운 영어 문장 1개. 파생어는 예문에 그대로 또는 활용형으로 들어가야 해.
+- phrases: playphrase.me 영화 대사 검색어. 입력 단어나 파생어가 들어간 A2 수준의 아주 흔한 2~3단어 표현 3개.
+- imageSvg: 단어를 대표하는 단순하고 귀여운 그림. viewBox="0 0 240 160", 도형 8~25개, 글자 금지, 모든 도형에 밝은 fill 색 직접 지정, script·image·a·foreignObject·외부 링크 금지, 3000자 이내.
+- story: 파생어를 3개 이상 써서, 웃긴 사건이나 반전이 있는 정말 재미있는 이야기. 한국어 문장 안에 영어 단어를 넣고 바로 뒤에 괄호로 한글 뜻을 붙여(예: transport(옮기다)). 초등학교 6학년이 이해할 수준. 공백 포함 300자 이내.
+- 입력이 영어 단어가 아니면 {"error":"한국어로 짧은 이유"} 만 답해.`;
+}
+
+let samplePromise = (window.claude && window.claude.use) ? window.claude.use("sample") : Promise.resolve(null);
+let ctl = null;
+const msg = (t, err) => { const m = $("#msg"); m.textContent = t; m.classList.toggle("err", !!err); };
+const ERR = {
+  not_granted:"Claude 사용을 허락하지 않아서 새 단어는 만들 수 없어요. 예시 단어는 계속 볼 수 있어요.",
+  sampling_disabled:"이 계정에서는 Claude를 쓸 수 없어요. 예시 단어로 공부해 보세요.",
+  rate_limited:"지금 요청이 많아요. 잠시 뒤에 다시 눌러 주세요.",
+  session_expired:"로그인이 만료됐어요. 다시 로그인한 뒤 눌러 주세요.",
+  invalid_json:"내용을 정리하다 꼬였어요. 한 번 더 눌러 주세요.",
+  refused:"이 단어는 만들 수 없어요. 다른 단어로 해 볼까요?"
+};
+
+async function generate(raw){
+  const w = raw.trim().toLowerCase();
+  if (!/^[a-z][a-z\-']{1,30}$/.test(w)) { msg("영어 단어 하나를 알파벳으로 넣어 주세요.", true); return; }
+  if (find(w)) { show(find(w)); msg(""); return; }
+  const sample = await samplePromise;
+  if (!sample) { msg("여기서는 Claude를 부를 수 없어요. claude.ai에서 열면 새 단어도 만들 수 있어요. 지금은 예시 단어를 눌러 보세요.", true); return; }
+  ctl = new AbortController();
+  $("#go").disabled = true; $("#stop").hidden = false;
+  msg(`'${w}' 뿌리를 캐는 중이에요… (보통 20~60초 걸려요)`);
+  try {
+    const d = await sample.json(buildPrompt(w), { signal: ctl.signal, cache: { gcTime: 86400000 } });
+    if (!d || typeof d !== "object") throw { code: "invalid_json" };
+    if (d.error) { msg(String(d.error), true); return; }
+    if (!d.word || !Array.isArray(d.parts) || !Array.isArray(d.derivatives)) throw { code: "invalid_json" };
+    d.word = String(d.word).toLowerCase(); d.generated = true;
+    saved[d.word] = d; persist();
+    show(d); msg("");
+  } catch (e) {
+    if (e && e.code === "cancelled") msg("멈췄어요.");
+    else msg(ERR[e && e.code] || "연결이 잠깐 끊겼어요. 다시 눌러 주세요.", true);
+  } finally { $("#go").disabled = false; $("#stop").hidden = true; ctl = null; }
+}
+
+$("#f").addEventListener("submit", ev => { ev.preventDefault(); generate($("#q").value); });
+$("#stop").onclick = () => ctl && ctl.abort();
+
+const start = (location.hash || "").slice(1);
+show(find(start) || PRESET[0]);
+</script>
+</body>
+</html>
