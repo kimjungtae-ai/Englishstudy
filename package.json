@@ -1,0 +1,9 @@
+{
+  "name": "englishstudy",
+  "private": true,
+  "description": "어원 단어 교실: 정적 페이지 + 새 단어를 만드는 Vercel 서버 함수",
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0"
+  }
+}
