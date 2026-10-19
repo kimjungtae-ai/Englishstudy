@@ -1,0 +1,42 @@
+# 수능 단어 사전을 GitHub에서 만들어 저장소에 바로 올림.
+# 저장소 Settings → Secrets and variables → Actions 에 GEMINI_API_KEY 를 넣어 두면,
+# 매일 한 번 무료 한도 안에서 이어서 만들고, Actions 탭에서 직접 돌릴 수도 있음.
+name: 단어 사전 만들기
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "이번에 만들 최대 단어 수"
+        default: "800"
+  schedule:
+    - cron: "0 18 * * *"   # 매일 한국 시간 새벽 3시
+
+permissions:
+  contents: write
+
+concurrency: build-dictionary
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: 단어 만들기
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          LIMIT: ${{ github.event.inputs.limit || '800' }}
+        run: node scripts/build-dictionary.js
+      - name: 저장소에 올리기
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add data/words
+          git diff --cached --quiet && exit 0
+          git commit -m "단어 사전 추가: $(ls data/words | grep -vc index.json)개"
+          git push

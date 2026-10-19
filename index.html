@@ -102,7 +102,7 @@ a{color:var(--accent)}
 <div class="wrap">
   <header>
     <h1>어원 단어 교실</h1>
-    <p class="sub">영어 단어를 넣으면 조각조각 나눠서, 뿌리부터 이야기처럼 알려 줄게요.</p>
+    <p class="sub">수능 영어 단어를 넣으면 조각조각 나눠서, 뿌리부터 이야기처럼 알려 줄게요.</p>
   </header>
 
   <form class="search" id="f" autocomplete="off">
@@ -114,7 +114,7 @@ a{color:var(--accent)}
   <div class="status"><span class="note" id="msg"></span></div>
 
   <article class="card" id="card" aria-live="polite"></article>
-  <p class="note">예시 단어 6개는 미리 만들어 둔 내용이에요. 다른 단어는 Claude가 그 자리에서 만들어서, 처음 한 번은 사용 허락을 물어봐요. 만든 단어는 이 브라우저에 저장돼요.</p>
+  <p class="note">수능 단어 사전에 있는 단어는 바로 보여 줘요. 사전에 없는 단어는 AI가 그 자리에서 만들고, 이 브라우저에 저장해 둬요.</p>
 </div>
 
 <script src="prompt.js"></script>
@@ -284,7 +284,8 @@ function show(d){
   // hero: the word broken into blocks
   const hero = el("div", "hero");
   const meta = el("div", "meta"); meta.append(el("span", "w", d.word), el("span", "pos", d.pos || ""));
-  if (d.generated) meta.append(el("span", "tag", "Claude가 만든 내용"));
+  if (d.generated) meta.append(el("span", "tag", "AI가 그 자리에서 만든 내용"));
+  if (d.certainty === "low") meta.append(el("span", "tag", "어원 학설이 갈리는 단어"));
   hero.append(meta, el("div", "mean", d.meaning || ""));
   const blocks = el("div", "blocks");
   (d.parts || []).forEach((p, i) => {
@@ -299,12 +300,21 @@ function show(d){
   card.append(hero);
 
   // 1 root analysis
-  const s1 = section("1", "어근 분석"); s1.append(talk(d.rootTalk || "")); card.append(s1);
+  const s1 = section("1", "어근 분석"); s1.append(talk(d.rootTalk || ""));
+  const syn = (d.synonyms || []).filter(Boolean), ant = (d.antonyms || []).filter(Boolean);
+  if (syn.length || ant.length) {
+    const nym = el("p", "note");
+    if (syn.length) nym.append("유의어: " + syn.join(", "));
+    if (syn.length && ant.length) nym.append(" · ");
+    if (ant.length) nym.append("반의어: " + ant.join(", "));
+    s1.append(nym);
+  }
+  card.append(s1);
   // 2 history
   const s2 = section("2", "문화·역사 이야기"); s2.append(talk(d.history || "")); card.append(s2);
   // 3+4 derivatives with A2 examples
   const s3 = section("3·4", "같은 뿌리 단어와 예문");
-  s3.append(el("p", "note", "A2 수준 예문이에요. 초록색은 오늘의 단어예요."));
+  s3.append(el("p", "note", "초록색은 오늘의 단어예요."));
   const g = el("div", "derivs");
   (d.derivatives || []).slice(0, 10).forEach(x => {
     const c = el("div", "d"); c.append(el("span", "dw", x.word), el("span", "dm", x.meaning || ""));
@@ -356,6 +366,17 @@ function apiSample(){
   }};
 }
 samplePromise = samplePromise.then(s => s || apiSample());
+
+// 미리 만든 수능 단어 사전(data/words/<단어>.json). 있으면 AI를 부르지 않고 바로 보여 줌.
+const DICT_BASE = onOwnServer || location.hostname.endsWith("github.io") ? "data/words/" : BACKEND + "/data/words/";
+async function fromDictionary(w){
+  try {
+    const r = await fetch(DICT_BASE + encodeURIComponent(w) + ".json");
+    if (!r.ok) return null;
+    const d = await r.json();
+    return d && d.word && Array.isArray(d.parts) ? d : null;
+  } catch (e) { return null; }
+}
 let ctl = null;
 const msg = (t, err) => { const m = $("#msg"); m.textContent = t; m.classList.toggle("err", !!err); };
 const ERR = {
@@ -367,17 +388,19 @@ const ERR = {
   refused:"이 단어는 만들 수 없어요. 다른 단어로 해 볼까요?",
   server_not_ready:"새 단어를 만드는 서버가 아직 준비되지 않았어요. 예시 단어는 지금도 볼 수 있어요.",
   network:"새 단어를 만드는 서버에 연결하지 못했어요. 잠시 뒤에 다시 눌러 주세요.",
-  api_error:"Claude 쪽에서 오류가 났어요. 잠시 뒤에 다시 눌러 주세요."
+  api_error:"AI 쪽에서 오류가 났어요. 잠시 뒤에 다시 눌러 주세요."
 };
 
 async function generate(raw){
   const w = raw.trim().toLowerCase();
   if (!/^[a-z][a-z\-']{1,30}$/.test(w)) { msg("영어 단어 하나를 알파벳으로 넣어 주세요.", true); return; }
   if (find(w)) { show(find(w)); msg(""); return; }
+  const fromDict = await fromDictionary(w);
+  if (fromDict) { fromDict.word = String(fromDict.word).toLowerCase(); saved[w] = fromDict; persist(); show(fromDict); msg(""); return; }
   const sample = await samplePromise;
   ctl = new AbortController();
   $("#go").disabled = true; $("#stop").hidden = false;
-  msg(`'${w}' 뿌리를 캐는 중이에요… (보통 20~60초 걸려요)`);
+  msg(`'${w}' 뿌리를 캐는 중이에요…`);
   try {
     const d = await sample.json(buildPrompt(w), { signal: ctl.signal, word: w, cache: { gcTime: 86400000 } });
     if (!d || typeof d !== "object") throw { code: "invalid_json" };
@@ -397,6 +420,7 @@ $("#stop").onclick = () => ctl && ctl.abort();
 
 const start = (location.hash || "").slice(1);
 show(find(start) || PRESET[0]);
+if (start && !find(start)) fromDictionary(start).then(d => { if (d) { saved[start] = d; persist(); show(d); } });
 </script>
 </body>
 </html>
