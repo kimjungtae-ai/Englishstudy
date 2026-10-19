@@ -1,0 +1,4 @@
+# 미리 만들 단어 목록. 한 줄에 한 단어, # 뒤는 메모로 무시됨.
+# 교육과정 기본 어휘(3,000개)나 수능 빈출 단어 목록을 여기에 붙여 넣으면,
+# scripts/build-dictionary.js 가 data/words/<단어>.json 을 만듦.
+report
